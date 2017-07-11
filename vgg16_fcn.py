@@ -84,15 +84,40 @@ def test_model(model):
     print('Predicted:', decode_predictions(preds))
 
     # test variable size input
-    img = image.load_img(img_path, target_size=(448, 448))
+    target_size = (448, 448)
+    img = image.load_img(img_path, target_size=target_size)
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
     preds = model.predict(x)
+    expected_output_shape = get_output_shape(target_size)
+    assert preds.shape[1] == expected_output_shape[0] and preds.shape[2] == expected_output_shape[1]
     preds = np.squeeze(preds, axis=0)
     preds = np.argmax(preds, axis=2)
     print preds
+
+
+def get_output_shape(input_shape):
+    if len(input_shape) != 2:
+        raise Exception("input_shape must have length 2")
+    if input_shape[0] < vgg16_cnn.img_rows or input_shape[1] < vgg16_cnn.img_cols:
+        raise Exception("input_shape must be larger than", (vgg16_cnn.img_rows, vgg16_cnn.img_cols))
+
+    input = np.asarray(input_shape)
+    '''
+    SAME padding
+    out_height = ceil(float(in_height) / float(strides[1]))
+    out_width  = ceil(float(in_width) / float(strides[2]))
+    
+    VALID padding
+    out_height = ceil(float(in_height - filter_height + 1) / float(strides[1]))
+    out_width  = ceil(float(in_width - filter_width + 1) / float(strides[2]))
+    '''
+    input /= 2**5
+    input -= 6
+
+    return input.tolist()
 
 
 if __name__ == '__main__':
