@@ -23,19 +23,23 @@ def convert_to_FCN(model):
             continue
 
         elif isinstance(layer, Conv2D):
-            x = Conv2D(layer.filters, layer.kernel_size, strides=layer.strides, padding=layer.padding, data_format=layer.data_format,
-                       dilation_rate=layer.dilation_rate, activation=layer.activation, use_bias=layer.use_bias, kernel_initializer=layer.kernel_initializer,
-                       bias_initializer=layer.bias_initializer, kernel_regularizer=layer.kernel_regularizer, bias_regularizer=layer.bias_regularizer,
-                       activity_regularizer=layer.activity_regularizer, kernel_constraint=layer.kernel_constraint, bias_constraint=layer.bias_constraint)(x)
+            x = Conv2D(layer.filters, layer.kernel_size, strides=layer.strides, padding=layer.padding,
+                       data_format=layer.data_format, dilation_rate=layer.dilation_rate, activation=layer.activation,
+                       use_bias=layer.use_bias, kernel_initializer=layer.kernel_initializer,
+                       bias_initializer=layer.bias_initializer, kernel_regularizer=layer.kernel_regularizer,
+                       bias_regularizer=layer.bias_regularizer,
+                       activity_regularizer=layer.activity_regularizer, kernel_constraint=layer.kernel_constraint,
+                       bias_constraint=layer.bias_constraint)(x)
 
         elif isinstance(layer, MaxPooling2D):
-            x = MaxPooling2D(layer.pool_size, strides=layer.strides, padding=layer.padding, data_format=layer.data_format)(x)
+            x = MaxPooling2D(layer.pool_size, strides=layer.strides, padding=layer.padding,
+                             data_format=layer.data_format)(x)
 
         elif isinstance(layer, Dropout):
             x = Dropout(layer.rate, noise_shape=layer.noise_shape, seed=layer.seed)(x)
 
         elif isinstance(layer, Dense):
-            x = Conv2D(layer.output_shape[1],output_shape[1:3], activation=layer.activation)(x)
+            x = Conv2D(layer.output_shape[1], output_shape[1:3], activation=layer.activation)(x)
             output_shape = (None, 1, 1, None)
 
         else:
@@ -60,7 +64,8 @@ def convert_to_FCN(model):
         new_model.layers[idx].set_weights(weights)
 
     if model.__dict__.has_key('optimizer'):
-        new_model.compile(model.optimizer, model.loss, metrics=model.metrics, loss_weights=model.loss_weights, sample_weight_mode=model.sample_weight_mode)
+        new_model.compile(model.optimizer, model.loss, metrics=model.metrics, loss_weights=model.loss_weights,
+                          sample_weight_mode=model.sample_weight_mode)
 
     model = new_model
     return model
