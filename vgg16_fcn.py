@@ -87,19 +87,17 @@ def test_model(model):
     x = preprocess_input(x)
 
     preds = model.predict(x)
-    preds = np.squeeze(preds).reshape(1, -1)
-    print('Predicted:', decode_predictions(preds))
+    preds = np.squeeze(preds, axis=0)
+    preds = np.argmax(preds, axis=2)
+    print preds
 
     # test variable size input
-    target_size = (448, 448)
-    img = image.load_img(img_path, target_size=target_size)
+    img = image.load_img(img_path)
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
     preds = model.predict(x)
-    expected_output_shape = get_output_shape(target_size)
-    assert preds.shape[1] == expected_output_shape[0] and preds.shape[2] == expected_output_shape[1]
     preds = np.squeeze(preds, axis=0)
     preds = np.argmax(preds, axis=2)
     print preds

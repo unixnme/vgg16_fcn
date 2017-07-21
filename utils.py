@@ -70,21 +70,25 @@ def convert_to_FCN(model):
     model = new_model
     return model
 
-
-if __name__ == '__main__':
-    model = get_trained_model()
-    model = convert_to_FCN(model)
-    #test_model(model)
-
+def decapitate_and_upsample(model):
     img_input = model.layers[0].input
     # decapitate the final layer
     x = model.layers[-2].output
     # add 21 classes
     x = Conv2D(21, (1, 1))(x)
     # upsampling
-    x = Conv2DTranspose(21, (1,1), strides=32, padding='same')(x)
+    x = Conv2DTranspose(21, (1, 1), strides=32, padding='same')(x)
     # create new model
     model = Model(img_input, x)
+    return model
+
+
+if __name__ == '__main__':
+    model = get_trained_model()
+    model = convert_to_FCN(model)
+    test_model(model)
+    model = decapitate_and_upsample(model)
+
     print model.predict(np.zeros((1,224,224,3))).shape
 
     # model = mnist_cnn()
