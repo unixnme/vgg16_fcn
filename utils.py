@@ -3,9 +3,14 @@ from keras.models import Model
 from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense, Conv2DTranspose
 from mnist_cnn import mnist_cnn, train_mnist
 from vgg16_cnn import get_trained_model
-from vgg16_fcn import test_model
+from vgg16_fcn import test_model, preprocess_input
 from mnist_fcn import test, train
+from keras.preprocessing import image
 import numpy as np
+from colormap import color_map
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimage
+import cv2
 
 def convert_to_FCN(model):
     if not isinstance(model, Model):
@@ -70,10 +75,16 @@ def convert_to_FCN(model):
     model = new_model
     return model
 
-def decapitate_and_upsample(model):
+def decapitate(model):
     img_input = model.layers[0].input
     # decapitate the final layer
     x = model.layers[-2].output
+    model = Model(img_input, x)
+    return model
+
+def upsample(model):
+    img_input = model.layers[0].input
+    x = model.layers[-1].output
     # add 21 classes
     x = Conv2D(21, (1, 1))(x)
     # upsampling
@@ -83,13 +94,58 @@ def decapitate_and_upsample(model):
     return model
 
 
+def convert_to_segmentation(img, cmap):
+    result = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+    for row in range(img.shape[0]):
+        for col in range(img.shape[1]):
+            result[row,col] = cmap[np.argmax(img[row,col])]
+    return result
+
+def convert_to_groundtruth(img, index):
+    result = np.zeros((img.shape[0], img.shape[1], 21))
+    for row in range(img.shape[0]):
+        for col in range(img.shape[1]):
+            x = tuple(img[row,col])
+            if index.has_key(x):
+                result[row,col,index[x]] = 1
+
+    return result
+
 if __name__ == '__main__':
     model = get_trained_model()
     model = convert_to_FCN(model)
-    test_model(model)
-    model = decapitate_and_upsample(model)
+    #test_model(model)
+    model = decapitate(model)
+    model = upsample(model)
 
-    print model.predict(np.zeros((1,224,224,3))).shape
+    cmap = color_map()
+    index = {}
+    for n in range(21):
+        index[tuple(cmap[n])] = n
+
+    image_dir = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/JPEGImages/'
+    ground_truth_dir = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/SegmentationClass/'
+    filename = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt'
+    file = open(filename, 'r')
+    context = file.readlines()
+    for _name in context:
+        name = image_dir + _name[:-1] + '.jpg'
+        img = image.load_img(name)
+        fig = plt.figure()
+        a = fig.add_subplot(1,2,1)
+        plt.imshow(img)
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+
+        f = fig.add_subplot(1,2,2)
+        img = model.predict(np.expand_dims(img, axis=0))[0]
+        gimg = cv2.imread(ground_truth_dir + _name[:-1] + '.png')
+        gimg = cv2.cvtColor(gimg, cv2.COLOR_BGR2RGB)
+        gimg = convert_to_groundtruth(gimg, index)
+        img = convert_to_segmentation(img, cmap)
+        plt.imshow(img)
+        plt.show()
 
     # model = mnist_cnn()
     # model = train_mnist(model)
