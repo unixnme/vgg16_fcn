@@ -1,11 +1,11 @@
 import keras
 from keras.models import Model
-from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense
+from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense, Conv2DTranspose
 from mnist_cnn import mnist_cnn, train_mnist
 from vgg16_cnn import get_trained_model
 from vgg16_fcn import test_model
 from mnist_fcn import test, train
-
+import numpy as np
 
 def convert_to_FCN(model):
     if not isinstance(model, Model):
@@ -39,7 +39,7 @@ def convert_to_FCN(model):
             x = Dropout(layer.rate, noise_shape=layer.noise_shape, seed=layer.seed)(x)
 
         elif isinstance(layer, Dense):
-            x = Conv2D(layer.output_shape[1], output_shape[1:3], activation=layer.activation)(x)
+            x = Conv2D(layer.output_shape[1], output_shape[1:3], activation=layer.activation, padding='same')(x)
             output_shape = (None, 1, 1, None)
 
         else:
@@ -72,11 +72,22 @@ def convert_to_FCN(model):
 
 
 if __name__ == '__main__':
-    # model = get_trained_model()
-    # model = convert_to_FCN(model)
-    # test_model(model)
-
-    model = mnist_cnn()
-    model = train_mnist(model)
+    model = get_trained_model()
     model = convert_to_FCN(model)
-    test(model)
+    #test_model(model)
+
+    img_input = model.layers[0].input
+    # decapitate the final layer
+    x = model.layers[-2].output
+    # add 21 classes
+    x = Conv2D(21, (1, 1))(x)
+    # upsampling
+    x = Conv2DTranspose(21, (1,1), strides=32, padding='same')(x)
+    # create new model
+    model = Model(img_input, x)
+    print model.predict(np.zeros((1,224,224,3))).shape
+
+    # model = mnist_cnn()
+    # model = train_mnist(model)
+    # model = convert_to_FCN(model)
+    # test(model)
