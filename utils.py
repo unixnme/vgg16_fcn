@@ -77,7 +77,7 @@ def convert_to_FCN(model):
 
 def decapitate(model):
     img_input = model.layers[0].input
-    # decapitate the final layer
+    # decapitate the final layer (softmax activation)
     x = model.layers[-2].output
     model = Model(img_input, x)
     return model
@@ -86,7 +86,7 @@ def upsample(model):
     img_input = model.layers[0].input
     x = model.layers[-1].output
     # add 21 classes
-    x = Conv2D(21, (1, 1))(x)
+    x = Conv2D(21, (1, 1), activation='softmax')(x)
     # upsampling
     x = Conv2DTranspose(21, (1, 1), strides=32, padding='same')(x)
     # create new model
