@@ -5,6 +5,7 @@ from keras.preprocessing import image
 from keras.applications.imagenet_utils import preprocess_input, decode_predictions
 import numpy as np
 from numpy.random import randint
+import matplotlib.pyplot as plt
 
 
 def create_model():
@@ -47,8 +48,8 @@ def create_model():
     # 512, 7, 7
 
     # Dense --> Convolutional
-    x = Conv2D(4096, (7, 7), activation='relu', name='fc1')(x)
-    x = Conv2D(4096, (1, 1), activation='relu', name='fc2')(x)
+    x = Conv2D(4096, (7, 7), activation='relu', name='fc1', padding='same')(x)
+    x = Conv2D(4096, (1, 1), activation='relu', name='fc2', padding='same')(x)
     x = Conv2D(vgg16_cnn.num_classes, (1, 1), activation='softmax', name='predictions')(x)
     # 1000, x/32-6, x/32-6
 
@@ -99,8 +100,9 @@ def test_model(model):
 
     preds = model.predict(x)
     preds = np.squeeze(preds, axis=0)
-    preds = np.argmax(preds, axis=2)
-    print preds
+    preds = preds[:,:,386]
+    plt.imshow(preds, cmap='jet')
+    plt.show()
 
 
 def get_output_shape(input_shape):

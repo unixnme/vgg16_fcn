@@ -111,9 +111,29 @@ def convert_to_groundtruth(img, index):
 
     return result
 
+def test_upsampling(model):
+    # just upsample as is
+    img_input = model.layers[0].input
+    x = model.layers[-1].output
+    x = Conv2DTranspose(1000, (1, 1), strides=32, padding='same')(x)
+    model = Model(img_input, x)
+
+    # draw elephant probability map (label idx = 386)
+    img_path = 'elephant.jpg'
+    img = image.load_img(img_path)
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    preds = model.predict(x)
+    preds = np.squeeze(preds, axis=0)
+    preds = preds[:,:,386]
+    plt.imshow(preds, cmap='jet')
+    plt.show()
+
 if __name__ == '__main__':
     model = get_trained_model()
     model = convert_to_FCN(model)
+    test_upsampling(model)
     #test_model(model)
     model = decapitate(model)
     model = upsample(model)
