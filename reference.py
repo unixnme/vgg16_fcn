@@ -7,9 +7,11 @@ import numpy as np
 import argparse
 import copy
 
+"""
 parser = argparse.ArgumentParser()
 parser.add_argument('image')
 args = parser.parse_args()
+"""
 
 nb_classes = 21
 # Bilinear interpolation (reference: https://github.com/warmspringwinds/tf-image-segmentation/blob/master/tf_image_segmentation/utils/upsampling.py)
@@ -50,6 +52,7 @@ def fcn_32s_top():
     model = Model(inputs=inputs, outputs=x)
     return model
 
+"""
 base = fcn_32s_base()
 top = fcn_32s_top()
 model = Model(inputs=base.input, outputs=top(base.output))
@@ -77,3 +80,4 @@ img = img.resize((w_org, h_org))
 palette_im = Image.open('palette.png')
 img.palette = copy.copy(palette_im.palette)
 img.save('predict.png')
+"""

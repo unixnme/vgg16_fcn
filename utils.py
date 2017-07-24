@@ -115,7 +115,7 @@ def test_upsampling(model):
     # just upsample as is
     img_input = model.layers[0].input
     x = model.layers[-1].output
-    x = Conv2DTranspose(1000, (1, 1), strides=32, padding='same')(x)
+    x = Conv2DTranspose(21, (64, 64), strides=32, padding='same')(x)
     model = Model(img_input, x)
 
     # draw elephant probability map (label idx = 386)
@@ -126,7 +126,7 @@ def test_upsampling(model):
     x = preprocess_input(x)
     preds = model.predict(x)
     preds = np.squeeze(preds, axis=0)
-    preds = preds[:,:,386]
+    preds = preds[:,:,0]
     plt.imshow(preds, cmap='jet')
     plt.show()
 
