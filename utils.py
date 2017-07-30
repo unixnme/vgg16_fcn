@@ -1,5 +1,6 @@
 import keras
-from keras.models import Model
+from keras import backend as K
+from keras.models import Model, load_model
 from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense, Conv2DTranspose, Reshape
 from mnist_cnn import mnist_cnn, train_mnist
 from vgg16_cnn import get_trained_model
@@ -230,15 +231,20 @@ def change_top_layer(model, num_classes):
     img_input = model.input
     x = model.layers[-2].output
     x = Dense(num_classes, activation=model.layers[-1].activation)(x)
-    new_model = Model(img_input, x)
-    return new_model
+    model = Model(img_input, x)
+    return model
 
 
 if __name__ == '__main__':
+    model_name = 'vgg16_fcn.h5'
+    """
     model = get_trained_model()
     # decapitate and add classifier for 21 classes
     model = change_top_layer(model, 21)
 
     model = convert_to_FCN(model, input_shape=(160, 160, 3))
-
+    model.save(model_name)
+    """
+    # K.clear_session()
+    model = load_model(model_name)
     model = train_model(model)
