@@ -1,6 +1,6 @@
 import keras
 from keras.models import Model
-from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense, Conv2DTranspose
+from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense, Conv2DTranspose, Reshape
 from mnist_cnn import mnist_cnn, train_mnist
 from vgg16_cnn import get_trained_model
 from vgg16_fcn import test_model, preprocess_input
@@ -82,6 +82,13 @@ def decapitate(model):
     model = Model(img_input, x)
     return model
 
+def flatten_last_layer(model):
+    img_input = model.layers[0].input
+    x = model.layers[-1].output
+    x = Reshape((-1, ))
+    return model
+
+
 def upsample(model):
     img_input = model.layers[0].input
     x = model.layers[-1].output
@@ -130,18 +137,46 @@ def test_upsampling(model):
     plt.imshow(preds, cmap='jet')
     plt.show()
 
+
+def get_image(filename, size=None, color='RGB'):
+    img = cv2.imread(filename)
+    if size:
+        img = cv2.resize(img, size)
+    if color == 'RGB':
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    return img
+
+def get_batches(raw_imgs, labeled_imgs, batch_size, x_size=None, y_size=None, color='RGB'):
+    # generator; do not store images in the memory
+    num_samples = len(raw_imgs)
+    indices = np.arange(num_samples)
+    while True:
+        np.random.shuffle(indices)
+        for start in range(0, num_samples, batch_size):
+            end = min(start + batch_size, num_samples)
+            idx = indices[start:end]
+            batch_x = []
+            batch_y = []
+            for i in idx:
+                batch_x.append(get_image(raw_imgs[i], x_size, color))
+                batch_y.append(get_image(labeled_imgs[i], y_size, color))
+            yield np.array(batch_x), np.array(batch_y)
+
+
 if __name__ == '__main__':
     model = get_trained_model()
     model = convert_to_FCN(model)
-    test_upsampling(model)
+    #test_upsampling(model)
     #test_model(model)
     model = decapitate(model)
-    model = upsample(model)
+    #model = upsample(model)
 
     cmap = color_map()
     index = {}
     for n in range(21):
         index[tuple(cmap[n])] = n
+    index[tuple(cmap[255])] = 255
 
     image_dir = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/JPEGImages/'
     ground_truth_dir = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/SegmentationClass/'

@@ -98,10 +98,16 @@ def test_model(model):
     x = np.expand_dims(x, axis=0)
     x = preprocess_input(x)
 
+    fig = plt.figure()
+    a = fig.add_subplot(1, 2, 1)
+    plt.imshow(img)
+
+    f = fig.add_subplot(1, 2, 2)
     preds = model.predict(x)
     preds = np.squeeze(preds, axis=0)
     preds = preds[:,:,386]
     plt.imshow(preds, cmap='jet')
+    plt.colorbar()
     plt.show()
 
 

@@ -7,7 +7,7 @@ import numpy as np
 
 # get random input
 np.random.seed(0)
-nx = 64; ny = 64
+nx = 1024; ny = 1024
 u = np.linspace(0, 1, nx)
 v = np.linspace(0, 1, ny)
 xx, yy = np.meshgrid(u, v, sparse=False)
