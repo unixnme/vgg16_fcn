@@ -11,13 +11,15 @@ from colormap import color_map
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimage
 import cv2
+import os
 
-def convert_to_FCN(model):
+def convert_to_FCN(model, input_shape=None):
     if not isinstance(model, Model):
         raise Exception("model must be a valid Keras model")
 
     # currently this function only works for sequential model
-    input_shape = (None, None, model.layers[0].input_shape[-1])
+    if input_shape is None:
+        input_shape = (None, None, model.layers[0].input_shape[-1])
     img_input = Input(shape=input_shape)
     x = img_input
     counter = 1
@@ -163,46 +165,37 @@ def get_batches(raw_imgs, labeled_imgs, batch_size, x_size=None, y_size=None, co
                 batch_y.append(get_image(labeled_imgs[i], y_size, color))
             yield np.array(batch_x), np.array(batch_y)
 
-
-if __name__ == '__main__':
-    model = get_trained_model()
-    model = convert_to_FCN(model)
-    #test_upsampling(model)
-    #test_model(model)
-    model = decapitate(model)
-    #model = upsample(model)
-
+def train_model(model):
+    batch_size = 2
     cmap = color_map()
     index = {}
     for n in range(21):
         index[tuple(cmap[n])] = n
     index[tuple(cmap[255])] = 255
+    home = os.environ['HOME']
+    image_dir = os.path.join(home, '.keras/datasets/VOCdevkit/VOC2012/JPEGImages/')
+    ground_truth_dir = os.path.join(home, '.keras/datasets/VOCdevkit/VOC2012/SegmentationClass/')
+    filename = os.path.join(home, '.keras/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt')
+    with open(filename, 'r') as file:
+        context = file.readlines()
 
-    image_dir = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/JPEGImages/'
-    ground_truth_dir = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/SegmentationClass/'
-    filename = '/Users/ykang7/.keras/datasets/VOC2012/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt'
-    file = open(filename, 'r')
-    context = file.readlines()
-    for _name in context:
-        name = image_dir + _name[:-1] + '.jpg'
-        img = image.load_img(name)
-        fig = plt.figure()
-        a = fig.add_subplot(1,2,1)
-        plt.imshow(img)
-        x = image.img_to_array(img)
-        x = np.expand_dims(x, axis=0)
-        x = preprocess_input(x)
+    x_imgs = []
+    y_imgs = []
+    for name in context:
+        x_imgs.append(image_dir + name[:-1] + '.jpg')
+        y_imgs.append(ground_truth_dir + name[:-1] + '.png')
 
-        f = fig.add_subplot(1,2,2)
-        img = model.predict(np.expand_dims(img, axis=0))[0]
-        gimg = cv2.imread(ground_truth_dir + _name[:-1] + '.png')
-        gimg = cv2.cvtColor(gimg, cv2.COLOR_BGR2RGB)
-        gimg = convert_to_groundtruth(gimg, index)
-        img = convert_to_segmentation(img, cmap)
-        plt.imshow(img)
-        plt.show()
+    gen = get_batches(x_imgs, y_imgs, batch_size, (160, 160), (160, 160))
+    x,y = next(gen)
 
-    # model = mnist_cnn()
-    # model = train_mnist(model)
-    # model = convert_to_FCN(model)
-    # test(model)
+    fig = plt.figure()
+    a = fig.add_subplot(1,2,1)
+    plt.imshow(x[0])
+    f = fig.add_subplot(1,2,2)
+    plt.imshow(y[0])
+    plt.show()
+
+if __name__ == '__main__':
+    model = get_trained_model()
+    model = convert_to_FCN(model, input_shape=(160, 160, 3))
+    model = train_model(model)
