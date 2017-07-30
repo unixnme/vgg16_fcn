@@ -25,7 +25,10 @@ def color_map(N=256, normalized=False):
         cmap[i] = np.array([r, g, b])
 
     cmap = cmap/255 if normalized else cmap
-    return cmap
+    labels = ['background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow',
+              'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train',
+              'tvmonitor', 'void']
+    return cmap, labels
 
 
 def color_map_viz():

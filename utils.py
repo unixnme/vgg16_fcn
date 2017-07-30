@@ -3,7 +3,7 @@ from keras.models import Model
 from keras.layers import Flatten, Input, Conv2D, InputLayer, MaxPooling2D, Dropout, Dense, Conv2DTranspose, Reshape
 from mnist_cnn import mnist_cnn, train_mnist
 from vgg16_cnn import get_trained_model
-from vgg16_fcn import test_model, preprocess_input
+from keras.applications.imagenet_utils import preprocess_input
 from mnist_fcn import test, train
 from keras.preprocessing import image
 import numpy as np
@@ -12,6 +12,20 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimage
 import cv2
 import os
+
+
+cmap, labels = color_map()
+index = {}
+cmap_idx = list(range(21))
+cmap_idx.append(-1)
+for idx in cmap_idx:
+    print labels[idx], '\t', cmap[idx]
+print
+for n in cmap_idx:
+    index[tuple(cmap[n])] = n
+# void --> background
+index[tuple(cmap[-1])] = 0
+
 
 def convert_to_FCN(model, input_shape=None):
     if not isinstance(model, Model):
@@ -103,20 +117,22 @@ def upsample(model):
     return model
 
 
-def convert_to_segmentation(img, cmap):
+def convert_to_segmentation(img):
     result = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
     for row in range(img.shape[0]):
         for col in range(img.shape[1]):
             result[row,col] = cmap[np.argmax(img[row,col])]
     return result
 
-def convert_to_groundtruth(img, index):
-    result = np.zeros((img.shape[0], img.shape[1], 21))
+def convert_to_groundtruth(img):
+    result = np.zeros((img.shape[0], img.shape[1], 21), dtype=np.float32)
     for row in range(img.shape[0]):
         for col in range(img.shape[1]):
             x = tuple(img[row,col])
             if index.has_key(x):
                 result[row,col,index[x]] = 1
+            else:
+                raise Exception('this should not happen')
 
     return result
 
@@ -143,7 +159,7 @@ def test_upsampling(model):
 def get_image(filename, size=None, color='RGB'):
     img = cv2.imread(filename)
     if size:
-        img = cv2.resize(img, size)
+        img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
     if color == 'RGB':
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -163,15 +179,18 @@ def get_batches(raw_imgs, labeled_imgs, batch_size, x_size=None, y_size=None, co
             for i in idx:
                 batch_x.append(get_image(raw_imgs[i], x_size, color))
                 batch_y.append(get_image(labeled_imgs[i], y_size, color))
-            yield np.array(batch_x), np.array(batch_y)
+
+            display_images(batch_x[0], batch_y[0])
+
+            batch_x = preprocess_input(np.array(batch_x, dtype=np.float32))
+            for i in range(len(batch_y)):
+                batch_y[i] = convert_to_groundtruth(batch_y[i])
+
+            yield batch_x, np.array(batch_y)
 
 def train_model(model):
     batch_size = 2
-    cmap = color_map()
-    index = {}
-    for n in range(21):
-        index[tuple(cmap[n])] = n
-    index[tuple(cmap[255])] = 255
+
     home = os.environ['HOME']
     image_dir = os.path.join(home, '.keras/datasets/VOCdevkit/VOC2012/JPEGImages/')
     ground_truth_dir = os.path.join(home, '.keras/datasets/VOCdevkit/VOC2012/SegmentationClass/')
@@ -185,15 +204,18 @@ def train_model(model):
         x_imgs.append(image_dir + name[:-1] + '.jpg')
         y_imgs.append(ground_truth_dir + name[:-1] + '.png')
 
-    gen = get_batches(x_imgs, y_imgs, batch_size, (160, 160), (160, 160))
-    x,y = next(gen)
+    gen = get_batches(x_imgs, y_imgs, batch_size, (320, 320), (10, 10))
 
+
+
+def display_images(x,y):
     fig = plt.figure()
     a = fig.add_subplot(1,2,1)
-    plt.imshow(x[0])
+    plt.imshow(x)
     f = fig.add_subplot(1,2,2)
-    plt.imshow(y[0])
+    plt.imshow(y)
     plt.show()
+
 
 if __name__ == '__main__':
     model = get_trained_model()
