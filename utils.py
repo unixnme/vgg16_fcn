@@ -180,7 +180,7 @@ def get_batches(raw_imgs, labeled_imgs, batch_size, x_size=None, y_size=None, co
                 batch_x.append(get_image(raw_imgs[i], x_size, color))
                 batch_y.append(get_image(labeled_imgs[i], y_size, color))
 
-            display_images(batch_x[0], batch_y[0])
+            #display_images(batch_x[0], batch_y[0])
 
             batch_x = preprocess_input(np.array(batch_x, dtype=np.float32))
             for i in range(len(batch_y)):
@@ -204,8 +204,17 @@ def train_model(model):
         x_imgs.append(image_dir + name[:-1] + '.jpg')
         y_imgs.append(ground_truth_dir + name[:-1] + '.png')
 
-    gen = get_batches(x_imgs, y_imgs, batch_size, (320, 320), (10, 10))
+    gen = get_batches(x_imgs, y_imgs, batch_size, (160, 160), (5, 5))
 
+    model.compile(loss=keras.losses.categorical_crossentropy,
+                  optimizer=keras.optimizers.Adadelta(),
+                  metrics=['accuracy'])
+    steps_per_epochs = 10
+    epochs = 1
+    model.fit_generator(generator=gen, steps_per_epoch=steps_per_epochs, verbose=1, epochs=epochs)
+
+    x, y = next(gen)
+    pred = model.predict(x)
 
 
 def display_images(x,y):
@@ -217,7 +226,19 @@ def display_images(x,y):
     plt.show()
 
 
+def change_top_layer(model, num_classes):
+    img_input = model.input
+    x = model.layers[-2].output
+    x = Dense(num_classes, activation=model.layers[-1].activation)(x)
+    new_model = Model(img_input, x)
+    return new_model
+
+
 if __name__ == '__main__':
     model = get_trained_model()
+    # decapitate and add classifier for 21 classes
+    model = change_top_layer(model, 21)
+
     model = convert_to_FCN(model, input_shape=(160, 160, 3))
+
     model = train_model(model)
